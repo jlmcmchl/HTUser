@@ -1,0 +1,22 @@
+plugins {
+    id 'application'
+}
+
+repositories {
+    mavenCentral()
+    maven {
+        url 'https://maven.pkg.github.com/jlbabilino/HelixTrajectory'
+        credentials {
+            username 'jlbabilino'
+            password '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'
+        }
+    }
+}
+
+dependencies {
+    implementation 'org.team2363:helixtrajectory:0.0.0-pre4'
+}
+
+application {
+    mainClass = 'htuser.App'
+}
