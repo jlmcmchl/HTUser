@@ -8,7 +8,7 @@ repositories {
         url 'https://maven.pkg.github.com/jlbabilino/HelixTrajectory'
         credentials {
             username 'jlbabilino'
-            password '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'
+            password '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'
         }
     }
 }
