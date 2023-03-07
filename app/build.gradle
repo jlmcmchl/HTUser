@@ -1,22 +1,79 @@
 plugins {
-    id 'application'
+    id 'java'
+    id "com.diffplug.spotless" version "6.15.0"
 }
 
 repositories {
     mavenCentral()
     maven {
-        url 'https://maven.pkg.github.com/jlbabilino/HelixTrajectory'
+        url = uri("https://jitpack.io")
+    }
+    maven {
+        url 'https://maven.pkg.github.com/SleipnirGroup/TrajoptLib'
         credentials {
-            username 'jlbabilino'
-            password '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'
+            username 'REPLACEME'
+            password 'REPLACEME'
         }
     }
 }
 
 dependencies {
-    implementation 'org.team2363:helixtrajectory:0.0.0-pre4'
+    implementation("org.team2363:helixtrajectory:0.0.0-pre5")
+
+    implementation 'com.google.code.gson:gson:2.10.1'
+    implementation 'commons-io:commons-io:2.11.0'
 }
 
-application {
-    mainClass = 'htuser.App'
+jar {
+    from {
+        configurations.runtimeClasspath.collect {
+            it.isDirectory() ? it : zipTree(it)
+        }
+    }
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
 }
+
+spotless {
+    java {
+        target fileTree('.') {
+            include '**/*.java'
+            exclude '**/build/**', '**/build-*/**'
+        }
+        toggleOffOn()
+        googleJavaFormat()
+        removeUnusedImports()
+        trimTrailingWhitespace()
+        endWithNewline()
+    }
+    groovyGradle {
+        target fileTree('.') {
+            include '**/*.gradle'
+            exclude '**/build/**', '**/build-*/**'
+        }
+        greclipse()
+        indentWithSpaces(4)
+        trimTrailingWhitespace()
+        endWithNewline()
+    }
+    format 'xml', {
+        target fileTree('.') {
+            include '**/*.xml'
+            exclude '**/build/**', '**/build-*/**'
+        }
+        eclipseWtp('xml')
+        trimTrailingWhitespace()
+        indentWithSpaces(2)
+        endWithNewline()
+    }
+    format 'misc', {
+        target fileTree('.') {
+            include '**/*.md', '**/.gitignore'
+            exclude '**/build/**', '**/build-*/**'
+        }
+        trimTrailingWhitespace()
+        indentWithSpaces(2)
+        endWithNewline()
+    }
+}
+
+compileJava.dependsOn spotlessApply

@@ -3,37 +3,69 @@
  */
 package htuser;
 
-import java.util.List;
+import com.google.gson.Gson;
+import htuser.data.Project;
+import htuser.data.Trajectory;
+import java.io.File;
+import java.io.FileInputStream;
+import java.nio.charset.Charset;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import org.team2363.helixtrajectory.*;
 
 public class App {
-    public static void main(String[] args) throws Exception {
-        SwerveDrivetrain swerveDrivetrain = new SwerveDrivetrain(45, 6,
-            List.of(new SwerveModule(+0.6, +0.6, 0.04, 70, 2),
-             new SwerveModule(+0.6, -0.6, 0.04, 70, 2),
-             new SwerveModule(-0.6, +0.6, 0.04, 70, 2),
-             new SwerveModule(-0.6, -0.6, 0.04, 70, 2)),
-            new Obstacle(0, true, List.of(
-             new ObstaclePoint(+0.5, +0.5),
-             new ObstaclePoint(-0.5, +0.5),
-             new ObstaclePoint(-0.5, -0.5),
-             new ObstaclePoint(+0.5, -0.5))));
 
-        HolonomicPath holonomicPath = new HolonomicPath(List.of(
-            new HolonomicWaypoint( 4,  0,    0, 0, 0, 0, true, true, true,  true,  true,  true,  true,    0, List.of(), List.of()),
-            new HolonomicWaypoint( 0,  4, 1.57, 0, 0, 0, true, true, true, false, false, false, false,  100, List.of(), List.of()),
-            new HolonomicWaypoint(-4,  0,    0, 0, 0, 0, true, true, true, false, false, false, false,  100, List.of(), List.of()),
-            new HolonomicWaypoint( 0, -4, 3.14, 0, 0, 0, true, true, true, false, false, false, false,  100, List.of(), List.of()),
-            new HolonomicWaypoint( 4,  0, 4.71, 0, 0, 0, true, true, true,  true,  true,  true,  true,  100, List.of(), List.of())
-        ));
+  public static Project loadFromFile(String fname) throws Exception {
+    FileInputStream inputStream = new FileInputStream(fname);
+    try {
+      String everything = IOUtils.toString(inputStream, Charset.defaultCharset());
+      return new Gson().fromJson(everything, Project.class);
+    } finally {
+      inputStream.close();
+    }
+  }
+
+  public static void writeToFile(String fname, Trajectory content) throws Exception {
+    FileUtils.write(new File(fname), new Gson().toJson(content.samples), Charset.defaultCharset());
+  }
+
+  public static void main(String[] args) throws Exception {
+    if (args.length < 1 || args.length > 2) {
+      System.out.println(
+          "USAGE: htuser.App [project path] (path name | \"all\").\n\tIf only [project path] is provided, all path names are printed.");
+      return;
+    }
+
+    var proj = loadFromFile(args[0]);
+
+    for (var kv : proj.paths.entrySet()) {
+      if (args.length == 1) {
+        System.out.println(kv.getKey());
+      } else if ("all".equals(args[1])
+          || kv.getKey().startsWith(args[1])
+          || kv.getKey().endsWith(args[1])) {
+        var fname =
+            String.format(
+                "%s-%s.path.json", args[0].substring(0, args[0].length() - 5), kv.getKey());
+
+        System.out.println(fname);
+        var drive = proj.robot_configuration.toDrivetrain();
+
+        var path = kv.getValue().toHolonomicPath();
 
         System.out.println("Drivetrain:\n");
-        System.out.println(swerveDrivetrain);
+        System.out.println(drive);
         System.out.println("Path:\n");
-        System.out.println(holonomicPath);
+        System.out.println(path);
+        try {
+          var traj = OptimalTrajectoryGenerator.generate(drive, path);
 
-        HolonomicTrajectory holonomicTrajectory = OptimalTrajectoryGenerator.generate(swerveDrivetrain, holonomicPath);
-        System.out.println("Trajectory:\n");
-        System.out.println(holonomicTrajectory);
+          writeToFile(fname, new Trajectory(traj));
+        } catch (Exception ex) {
+          System.out.println(String.format("Failed to generate or save trajectory: %s", ex.getLocalizedMessage()));
+          ex.printStackTrace();
+        }
+      }
     }
+  }
 }
