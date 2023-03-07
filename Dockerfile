@@ -13,4 +13,6 @@ COPY app/src /application/src
 
 RUN gradle build
 
-ENTRYPOINT ["/opt/java/openjdk/bin/java", "-cp", "build/libs/application.jar", "htuser.App", "/data/project.json"]
+WORKDIR /data
+
+ENTRYPOINT ["/opt/java/openjdk/bin/java", "-cp", "/application/build/libs/application.jar", "htuser.App"]
